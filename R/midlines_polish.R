@@ -37,17 +37,29 @@ midlines_debit = function(x, length) {
 #' plot(ml_smooth$geometry, add = TRUE)
 
 #' @export
-midlines_smooth = function(x, width = 3){
-
+midlines_smooth = function(x, width = 3, nparts = 2, moving_average = 'mean'){
+  
+  if (!inherits(x, 'sf')) stop("input should be of sf class") #Checking if input is a valid 'sf' object
+  
+ 
+  if(!nparts %in% c(2,3,4)) stop("nparts should be in [2,3,4]") #checking if number of parts is between [2,3,4]
+  
+  if (!moving_average %in% c('mean', 'median')) stop("moving_average should be either 'mean' or 'median' ")
+  
+  moving_average_fct <- switch(moving_average, 
+    "mean" = mean,
+    "median" = median
+  )
+  #checking if moving_average is either 'mean' or 'median'
   dat = midlines_group(x)
-  dat = dat %>% dplyr::select(geometry)  # stop warning about repeating attributes
+  dat = dat |> dplyr::select(geometry)  # stop warning about repeating attributes
   dat = sf::st_cast(dat,"LINESTRING")
 
   s = function(x){
     l = length(dat$geometry[[x]])
 
-    a = zoo::rollapply(dat$geometry[[x]][1:(l/2)], width = width, mean )
-    b = zoo::rollapply(dat$geometry[[x]][(l/2+1):l], width = width, mean )
+    a = zoo::rollapply(dat$geometry[[x]][1:(l/2)], width = width, moving_average_fct)
+    b = zoo::rollapply(dat$geometry[[x]][(l/2+1):l], width = width, moving_average_fct)
 
     sx = dat$geometry[[x]][1]
     ex = dat$geometry[[x]][(l/2)]
